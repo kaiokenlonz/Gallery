@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Dragon Ball">
+<title>Galerie Dragon Ball</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,700..900&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #BFE3FF;
+    --panel: #FFFFFF;
+    --ink: #141B4D;
+    --muted: #46527F;
+    --line: #8FBCE3;
+    --orange: #FF7A1A;
+    --orange-ink: #1A1000;
+    --display: 'Archivo', 'Arial Black', system-ui, sans-serif;
+    --text: 'Karla', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --aura: radial-gradient(circle at 50% 85%, #FFE27A 0%, #FFAA45 48%, #F0651A 100%);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0D1435;
+      --panel: #182051;
+      --ink: #EAF1FF;
+      --muted: #A3B0DD;
+      --line: #2C3872;
+    }
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16px/1.45 var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+  :focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+  button { font: inherit; color: inherit; }
+
+  header { padding: 18px 20px 4px; max-width: 720px; margin: 0 auto; }
+  h1 {
+    font: 900 34px/1 var(--display);
+    font-stretch: 118%;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+  .count { margin: 0; color: var(--muted); font-size: 15px; min-height: 22px; }
+
+  .tools {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 5;
+    background: var(--bg);
+    padding: 10px 20px 10px;
+  }
+  .tools-in { max-width: 720px; margin: 0 auto; }
+  .search {
+    width: 100%; height: 48px; padding: 0 16px; font: inherit; font-size: 16px;
+    color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px;
+  }
+  .search::placeholder { color: var(--muted); }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none; height: 40px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--line);
+    background: transparent; font-weight: 700; font-size: 14px; cursor: pointer; white-space: nowrap;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+
+  main { max-width: 720px; margin: 0 auto; padding: 6px 20px 40px; }
+  .status { margin: 14px 0; padding: 16px; background: var(--panel); border-radius: 14px; color: var(--muted); }
+  .status:empty { display: none; }
+  .status strong { display: block; color: var(--ink); margin-bottom: 4px; }
+  .btn {
+    margin-top: 12px; height: 44px; padding: 0 18px; border: 0; border-radius: 12px;
+    background: var(--orange); color: var(--orange-ink); font-weight: 700; cursor: pointer;
+  }
+
+  .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .card { position: relative; background: var(--panel); border-radius: 18px; overflow: hidden; }
+  .open { display: block; width: 100%; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+  .aura { display: grid; place-items: end center; aspect-ratio: 3 / 4; background: var(--aura); overflow: hidden; }
+  .aura img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; display: block; }
+  .ph { align-self: center; font: 900 64px/1 var(--display); color: rgba(20, 27, 77, .35); }
+  .meta { display: block; padding: 10px 12px 12px; }
+  .nm { display: block; font: 800 16px/1.2 var(--display); overflow-wrap: anywhere; }
+  .sub { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); min-height: 18px; }
+
+  .fav {
+    position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; border: 0; border-radius: 50%;
+    background: rgba(255, 255, 255, .85); color: #141B4D; display: grid; place-items: center; cursor: pointer; padding: 0;
+  }
+  .fav svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linejoin: round; }
+  .fav[aria-pressed="true"] { color: #E0245E; }
+  .fav[aria-pressed="true"] svg { fill: currentColor; }
+
+  dialog {
+    border: 0; padding: 0; background: var(--panel); color: var(--ink);
+    width: min(560px, 100%); max-width: 100%; max-height: 92vh; max-height: 92dvh;
+    margin: auto auto 0; border-radius: 22px 22px 0 0; overflow: auto;
+  }
+  dialog::backdrop { background: rgba(8, 12, 40, .6); }
+  .sheet { position: relative; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .close {
+    position: absolute; top: 10px; right: 10px; z-index: 2; width: 44px; height: 44px; border: 0; border-radius: 50%;
+    background: rgba(255, 255, 255, .9); color: #141B4D; font-size: 26px; line-height: 1; cursor: pointer; padding: 0;
+  }
+  .hero { aspect-ratio: 4 / 5; max-height: 46vh; width: 100%; }
+  .body { padding: 18px 20px 0; }
+  h2 { font: 900 28px/1.05 var(--display); font-stretch: 112%; margin: 0 0 10px; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .tag { background: var(--bg); border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 700; }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 14px; }
+  .stats div { background: var(--bg); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+  .stats dt { font-size: 12px; color: var(--muted); font-weight: 700; }
+  .stats dd { margin: 2px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+  .desc { margin: 0 0 18px; max-width: 60ch; }
+  .fbtn {
+    width: 100%; height: 48px; border-radius: 14px; border: 1.5px solid var(--line); background: transparent;
+    font-weight: 700; cursor: pointer;
+  }
+  .fbtn[aria-pressed="true"] { background: var(--orange); border-color: var(--orange); color: var(--orange-ink); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Galerie Dragon Ball</h1>
+  <p class="count" id="count"></p>
+</header>
+<div class="tools">
+  <div class="tools-in">
+    <input class="search" id="search" type="search" placeholder="Chercher un personnage" aria-label="Chercher un personnage" autocomplete="off" enterkeyhint="search">
+    <div class="chips" id="chips" role="group" aria-label="Filtres"></div>
+  </div>
+</div>
+<main>
+  <div class="status" id="status" role="status"></div>
+  <ul class="grid" id="grid"></ul>
+</main>
+<dialog id="dlg" aria-label="Fiche du personnage"></dialog>
+
+<script>
+(function () {
+  'use strict';
+
+  var API = 'https://dragonball-api.com/api';
+  var CACHE_KEY = 'dbz:characters:v1';
+  var FAV_KEY = 'dbz:favs:v1';
+  var GENDER = { Male: 'Homme', Female: 'Femme', Unknown: 'Inconnu' };
+  var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.3-9C1 8.6 3 5.5 6.2 5.5c2 0 3.5 1.1 4.3 2.5h3c.8-1.4 2.300-2.500 4.300-2.500 3.200 0 5.200 3.100 3.500 6.500C19 16.600 12 21 12 21z"/></svg>';
+
+  var state = { all: [], q: '', aff: 'all', favs: loadFavs(), fromCache: false, current: null };
+
+  var $count = document.getElementById('count');
+  var $search = document.getElementById('search');
+  var $chips = document.getElementById('chips');
+  var $status = document.getElementById('status');
+  var $grid = document.getElementById('grid');
+  var $dlg = document.getElementById('dlg');
+
+  /* ---------- Utilitaires ---------- */
+  function h(tag, props) {
+    var el = document.createElement(tag);
+    props = props || {};
+    Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (v === null || v === undefined || v === false) return;
+      if (k === 'class') el.className = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k.indexOf('on') === 0) el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var kids = [].concat(arguments[i]);
+      for (var j = 0; j < kids.length; j++) {
+        var kid = kids[j];
+        if (kid === null || kid === undefined || kid === false) continue;
+        el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+      }
+    }
+    return el;
+  }
+  function norm(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+  function loadFavs() {
+    var map = {};
+    try {
+      var arr = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
+      if (Array.isArray(arr)) arr.forEach(function (id) { map[String(id)] = true; });
+    } catch (e) {}
+    return map;
+  }
+  function saveFavs() {
+    try {
+      localStorage.setItem(FAV_KEY, JSON.stringify(Object.keys(state.favs).filter(function (k) { return state.favs[k]; })));
+    } catch (e) {}
+  }
+  function cleanItem(c) {
+    return {
+      id: c.id,
+      name: String(c.name || '').trim(),
+      ki: c.ki == null ? '' : String(c.ki),
+      maxKi: c.maxKi == null ? '' : String(c.maxKi),
+      race: c.race ? String(c.race) : '',
+      gender: c.gender ? String(c.gender) : '',
+      description: c.description ? String(c.description) : '',
+      image: typeof c.image === 'string' && c.image.indexOf('https://') === 0 ? c.image : '',
+      affiliation: c.affiliation ? String(c.affiliation) : ''
+    };
+  }
+
+  /* ---------- Données ---------- */
+  function loadAll() {
+    var all = [];
+    function next(page) {
+      return fetch(API + '/characters?page=' + page + '&limit=100').then(function (r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+      }).then(function (d) {
+        var items = Array.isArray(d) ? d : (d && d.items) || [];
+        all = all.concat(items);
+        var pages = (d && d.meta && Number(d.meta.totalPages)) || 1;
+        if (page < pages) return next(page + 1);
+        return all;
+      });
+    }
+    return next(1).then(function (list) {
+      var out = list.map(cleanItem).filter(function (c) { return c.name; });
+      if (!out.length) throw new Error('empty');
+      return out;
+    });
+  }
+  function readCache() {
+    try {
+      var arr = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
+      return Array.isArray(arr) ? arr.map(cleanItem).filter(function (c) { return c.name; }) : [];
+    } catch (e) { return []; }
+  }
+  function start() {
+    $status.replaceChildren(h('strong', {}, 'Chargement des personnages…'));
+    loadAll().then(function (list) {
+      state.all = list; state.fromCache = false;
+      try { localStorage.setItem(CACHE_KEY, JSON.stringify(list)); } catch (e) {}
+      ready();
+    }).catch(function () {
+      var cached = readCache();
+      if (cached.length) { state.all = cached; state.fromCache = true; ready(); }
+      else showError();
+    });
+  }
+  function showError() {
+    $count.textContent = '';
+    $status.replaceChildren(
+      h('strong', {}, 'Impossible de joindre l’API Dragon Ball'),
+      'Vérifie ta connexion, puis réessaie.',
+      h('br'),
+      h('button', { class: 'btn', type: 'button', onclick: start }, 'Réessayer')
+    );
+  }
+  function ready() {
+    $status.replaceChildren();
+    if (state.fromCache) {
+      $status.append(h('strong', {}, 'Mode hors ligne'), 'Affichage de la dernière liste enregistrée sur ton téléphone.');
+    }
+    buildChips();
+    render();
+  }
+
+  /* ---------- Filtres ---------- */
+  function buildChips() {
+    var counts = {};
+    state.all.forEach(function (c) { if (c.affiliation) counts[c.affiliation] = (counts[c.affiliation] || 0) + 1; });
+    var affs = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a] || a.localeCompare(b); });
+    var defs = [{ id: 'all', label: 'Tous' }, { id: 'fav', label: 'Favoris' }].concat(affs.map(function (a) { return { id: a, label: a }; }));
+    $chips.replaceChildren.apply($chips, defs.map(function (d) {
+      return h('button', {
+        class: 'chip', type: 'button', 'data-id': d.id, 'aria-pressed': 'false',
+        onclick: function () { state.aff = d.id; updateChips(); render(); }
+      }, d.label);
+    }));
+    updateChips();
+  }
+  function updateChips() {
+    Array.prototype.forEach.call($chips.children, function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-id') === state.aff));
+    });
+  }
+  function filtered() {
+    var q = norm(state.q);
+    return state.all.filter(function (c) {
+      if (state.aff === 'fav' && !state.favs[String(c.id)]) return false;
+      if (state.aff !== 'all' && state.aff !== 'fav' && c.affiliation !== state.aff) return false;
+      if (q && norm([c.name, c.race, c.affiliation].join(' ')).indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  /* ---------- Affichage ---------- */
+  function picture(c) {
+    if (!c.image) return h('span', { class: 'ph' }, c.name.charAt(0));
+    var img = h('img', { src: c.image, alt: c.name, loading: 'lazy', decoding: 'async' });
+    img.addEventListener('error', function () { img.replaceWith(h('span', { class: 'ph' }, c.name.charAt(0))); });
+    return img;
+  }
+  function favBtn(c) {
+    return h('button', {
+      class: 'fav', type: 'button', html: HEART,
+      'aria-pressed': String(!!state.favs[String(c.id)]),
+      'aria-label': (state.favs[String(c.id)] ? 'Retirer des favoris : ' : 'Ajouter aux favoris : ') + c.name,
+      onclick: function () { toggleFav(c); }
+    });
+  }
+  function card(c) {
+    return h('li', { class: 'card' },
+      h('button', { class: 'open', type: 'button', 'aria-label': 'Voir la fiche de ' + c.name, onclick: function () { openDetail(c); } },
+        h('span', { class: 'aura' }, picture(c)),
+        h('span', { class: 'meta' }, h('span', { class: 'nm' }, c.name), h('span', { class: 'sub' }, c.race))
+      ),
+      favBtn(c)
+    );
+  }
+  function render() {
+    var list = filtered();
+    $count.textContent = list.length === state.all.length
+      ? state.all.length + ' personnages'
+      : list.length + ' sur ' + state.all.length + ' personnages';
+    $grid.replaceChildren.apply($grid, list.map(card));
+    if (!list.length && state.all.length) {
+      $status.replaceChildren(
+        h('strong', {}, state.aff === 'fav' && !state.q ? 'Aucun favori pour l’instant' : 'Aucun résultat'),
+        state.aff === 'fav' && !state.q ? 'Touche le cœur d’un personnage pour l’ajouter ici.' : 'Efface la recherche ou choisis « Tous ».'
+      );
+    } else if (state.fromCache) {
+      $status.replaceChildren(h('strong', {}, 'Mode hors ligne'), 'Affichage de la dernière liste enregistrée sur ton téléphone.');
+    } else {
+      $status.replaceChildren();
+    }
+  }
+  function toggleFav(c) {
+    var k = String(c.id);
+    state.favs[k] = !state.favs[k];
+    saveFavs();
+    render();
+    if ($dlg.open && state.current && state.current.id === c.id) fillDetail(c);
+  }
+
+  /* ---------- Fiche détaillée ---------- */
+  function stat(label, value) {
+    return h('div', {}, h('dt', {}, label), h('dd', {}, value || '—'));
+  }
+  function fillDetail(c) {
+    var faved = !!state.favs[String(c.id)];
+    var tags = [c.race, GENDER[c.gender] || c.gender, c.affiliation].filter(Boolean);
+    $dlg.replaceChildren(h('div', { class: 'sheet' },
+      h('button', { class: 'close', type: 'button', 'aria-label': 'Fermer', onclick: closeDetail }, '×'),
+      h('div', { class: 'aura hero' }, picture(c)),
+      h('div', { class: 'body' },
+        h('h2', {}, c.name),
+        h('div', { class: 'tags' }, tags.map(function (t) { return h('span', { class: 'tag' }, t); })),
+        h('dl', { class: 'stats' }, stat('Ki', c.ki), stat('Ki max', c.maxKi)),
+        c.description ? h('p', { class: 'desc' }, c.description) : null,
+        h('button', {
+          class: 'fbtn', type: 'button', 'aria-pressed': String(faved),
+          onclick: function () { toggleFav(c); }
+        }, faved ? 'Dans mes favoris' : 'Ajouter aux favoris')
+      )
+    ));
+  }
+  function openDetail(c) {
+    state.current = c;
+    fillDetail(c);
+    if (typeof $dlg.showModal === 'function') $dlg.showModal(); else $dlg.setAttribute('open', '');
+  }
+  function closeDetail() {
+    if (typeof $dlg.close === 'function') $dlg.close(); else $dlg.removeAttribute('open');
+    state.current = null;
+  }
+  $dlg.addEventListener('click', function (e) { if (e.target === $dlg) closeDetail(); });
+  $dlg.addEventListener('close', function () { state.current = null; });
+
+  $search.addEventListener('input', function () { state.q = $search.value; if (state.all.length) render(); });
+
+  start();
+})();
+</script>
+</body>
+</html>
