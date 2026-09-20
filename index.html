@@ -115,7 +115,21 @@
     position: absolute; top: 10px; right: 10px; z-index: 2; width: 44px; height: 44px; border: 0; border-radius: 50%;
     background: rgba(255, 255, 255, .9); color: #141B4D; font-size: 26px; line-height: 1; cursor: pointer; padding: 0;
   }
-  .hero { aspect-ratio: 4 / 5; max-height: 46vh; width: 100%; }
+  .hero { aspect-ratio: 4 / 5; max-height: 46vh; width: 100%; touch-action: pan-y; }
+  .gallery { padding: 14px 20px 0; }
+  .gallery:empty { display: none; }
+  .gal-cap { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .gal-name { display: block; font: 800 17px/1.2 var(--display); overflow-wrap: anywhere; }
+  .gal-ki { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+  .gal-ki:empty { display: none; }
+  .gal-count { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .gal-msg { margin: 0; font-size: 14px; color: var(--muted); }
+  .thumbs { position: relative; display: flex; gap: 8px; overflow-x: auto; padding: 3px 3px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .thumbs::-webkit-scrollbar { display: none; }
+  .thumb { flex: none; width: 64px; height: 80px; border: 3px solid transparent; border-radius: 14px; padding: 0; background: none; overflow: hidden; cursor: pointer; }
+  .thumb .aura { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 10px; }
+  .thumb .ph { font-size: 24px; }
+  .thumb[aria-pressed="true"] { border-color: var(--orange); }
   .body { padding: 18px 20px 0; }
   h2 { font: 900 28px/1.05 var(--display); font-stretch: 112%; margin: 0 0 10px; }
   .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
@@ -162,6 +176,8 @@
   var CACHE_KEY = 'dbz:characters:v1';
   var FAV_KEY = 'dbz:favs:v1';
   var TR_KEY = 'dbz:translations:v1';
+  var DETAIL_KEY = 'dbz:details:v1';
+  var ORIGIN = 'https://dragonball-api.com';
   var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.3-9C1 8.6 3 5.5 6.2 5.5c2 0 3.5 1.1 4.3 2.5h3c.8-1.4 2.3-2.5 4.3-2.5 3.2 0 5.2 3.1 3.5 6.5C19 16.6 12 21 12 21z"/></svg>';
 
   /* ---------- Traductions françaises ---------- */
@@ -184,6 +200,7 @@
     'dr. gero': 'Docteur Gero', 'uub': 'Oob', 'yajirobe': 'Yajirobé', 'tien': 'Tenshinhan', 'tien shinhan': 'Tenshinhan',
     'chiaotzu': 'Chaozu', 'dabura': 'Dabra', 'frieza': 'Freezer'
   };
+  var PLANETS = { 'earth': 'Terre', 'namek': 'Namek', 'vegeta': 'Végéta', 'planet vegeta': 'Planète Végéta' };
   /* Échelles de nombres : l'API utilise les mots anglais, on les convertit en français (échelle longue). */
   var SCALE = {
     'thousand': ['mille', 'mille'], 'million': ['million', 'millions'], 'billion': ['milliard', 'milliards'],
@@ -208,7 +225,9 @@
 
   var state = { all: [], q: '', aff: 'all', favs: loadFavs(), fromCache: false, current: null };
   var trCache = loadJSON(TR_KEY, {});
+  var detailCache = loadJSON(DETAIL_KEY, {});
   var inflight = {};
+  var detailInflight = {};
 
   var $count = document.getElementById('count');
   var $search = document.getElementById('search');
@@ -258,6 +277,17 @@
   function saveFavs() {
     saveJSON(FAV_KEY, Object.keys(state.favs).filter(function (k) { return state.favs[k]; }));
   }
+  function absUrl(u) {
+    if (typeof u !== 'string') return '';
+    if (u.indexOf('https://') === 0) return u;
+    if (u.charAt(0) === '/') return ORIGIN + u;
+    return '';
+  }
+  function frTransfo(n) {
+    n = String(n || '').trim();
+    if (!n) return 'Transformation';
+    return n.replace(/saiyajin|saiyano/gi, 'Saiyan').replace(/^kaio[- ]?ken/i, 'Kaïoken');
+  }
   function frName(n) {
     var m = n.match(/^andro[ií]d[e]?\s*(\d+)$/i);
     if (m) return 'C-' + m[1];
@@ -287,7 +317,7 @@
       race: c.race ? String(c.race) : '',
       gender: c.gender ? String(c.gender) : '',
       description: c.description ? String(c.description) : '',
-      image: typeof c.image === 'string' && c.image.indexOf('https://') === 0 ? c.image : '',
+      image: absUrl(c.image),
       affiliation: c.affiliation ? String(c.affiliation) : ''
     };
     o.dn = frName(o.name);
@@ -449,12 +479,13 @@
   }
 
   /* ---------- Affichage ---------- */
-  function picture(c) {
-    if (!c.image) return h('span', { class: 'ph' }, c.dn.charAt(0));
-    var img = h('img', { src: c.image, alt: c.dn, loading: 'lazy', decoding: 'async' });
-    img.addEventListener('error', function () { img.replaceWith(h('span', { class: 'ph' }, c.dn.charAt(0))); });
+  function pic(url, alt, initial) {
+    if (!url) return h('span', { class: 'ph' }, initial.charAt(0));
+    var img = h('img', { src: url, alt: alt, loading: 'lazy', decoding: 'async' });
+    img.addEventListener('error', function () { img.replaceWith(h('span', { class: 'ph' }, initial.charAt(0))); });
     return img;
   }
+  function picture(c) { return pic(c.image, c.dn, c.dn); }
   function favBtn(c) {
     var on = !!state.favs[String(c.id)];
     return h('button', {
@@ -510,6 +541,94 @@
     b.textContent = on ? 'Dans mes favoris' : 'Ajouter aux favoris';
   }
 
+  /* ---------- Galerie photo d'un personnage ---------- */
+  function slimDetail(d) {
+    var tr = [];
+    if (d && Array.isArray(d.transformations)) {
+      d.transformations.forEach(function (t) {
+        var u = t && absUrl(t.image);
+        if (u) tr.push({ name: String(t.name || ''), image: u, ki: t.ki == null ? '' : String(t.ki) });
+      });
+    }
+    var planet = null;
+    var p = d && d.originPlanet;
+    if (p && absUrl(p.image)) planet = { name: String(p.name || ''), image: absUrl(p.image) };
+    return { tr: tr, planet: planet };
+  }
+  function getDetail(c) {
+    if (detailInflight[c.id]) return detailInflight[c.id];
+    var p = fetch(API + '/characters/' + encodeURIComponent(c.id)).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }).then(function (d) {
+      var slim = slimDetail(d);
+      if (slim.tr.length || slim.planet) { detailCache[c.id] = slim; saveJSON(DETAIL_KEY, detailCache); }
+      delete detailInflight[c.id];
+      return slim;
+    }, function (err) {
+      delete detailInflight[c.id];
+      if (detailCache[c.id]) return detailCache[c.id];
+      throw err;
+    });
+    detailInflight[c.id] = p;
+    return p;
+  }
+  function loadGallery(c, hero, box) {
+    box.replaceChildren(h('p', { class: 'gal-msg' }, 'Chargement de la galerie…'));
+    getDetail(c).then(build, function () {
+      if (box.isConnected) box.replaceChildren(h('p', { class: 'gal-msg' }, 'Photos supplémentaires indisponibles pour le moment.'));
+    });
+
+    function build(det) {
+      if (!box.isConnected) return;
+      var items = [{ label: 'Forme normale', image: c.image, ki: c.ki }];
+      det.tr.forEach(function (t) { items.push({ label: frTransfo(t.name), image: t.image, ki: t.ki }); });
+      if (det.planet) {
+        var pn = PLANETS[norm(det.planet.name)] || det.planet.name;
+        items.push({ label: 'Planète d’origine' + (pn ? ' : ' + pn : ''), image: det.planet.image, ki: '' });
+      }
+      if (items.length < 2) {
+        box.replaceChildren(h('p', { class: 'gal-msg' }, 'Pas d’autre photo pour ce personnage.'));
+        return;
+      }
+      var idx = 0;
+      var nameEl = h('span', { class: 'gal-name' });
+      var kiEl = h('span', { class: 'gal-ki' });
+      var countEl = h('span', { class: 'gal-count' });
+      var thumbs = h('div', { class: 'thumbs', role: 'group', 'aria-label': 'Photos de ' + c.dn });
+      var btns = items.map(function (it, i) {
+        var b = h('button', { class: 'thumb', type: 'button', 'aria-label': it.label, 'aria-pressed': 'false', onclick: function () { show(i, true); } },
+          h('span', { class: 'aura' }, pic(it.image, it.label, c.dn)));
+        thumbs.append(b);
+        return b;
+      });
+      function show(i, scroll) {
+        idx = Math.max(0, Math.min(items.length - 1, i));
+        var it = items[idx];
+        hero.replaceChildren(pic(it.image, c.dn + ' : ' + it.label, c.dn));
+        nameEl.textContent = it.label;
+        kiEl.textContent = it.ki ? 'Ki : ' + frNum(it.ki) : '';
+        countEl.textContent = (idx + 1) + ' sur ' + items.length;
+        btns.forEach(function (b, j) { b.setAttribute('aria-pressed', String(j === idx)); });
+        if (scroll) {
+          var b = btns[idx];
+          thumbs.scrollTo({ left: b.offsetLeft - (thumbs.clientWidth - b.offsetWidth) / 2 });
+        }
+      }
+      var sx = null, sy = 0;
+      hero.addEventListener('touchstart', function (e) { var t = e.touches[0]; sx = t.clientX; sy = t.clientY; }, { passive: true });
+      hero.addEventListener('touchend', function (e) {
+        if (sx === null) return;
+        var t = e.changedTouches[0];
+        var dx = t.clientX - sx, dy = t.clientY - sy;
+        sx = null;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) show(idx + (dx < 0 ? 1 : -1), true);
+      }, { passive: true });
+      box.replaceChildren(h('div', { class: 'gal-cap' }, h('span', {}, nameEl, kiEl), countEl), thumbs);
+      show(0, false);
+    }
+  }
+
   /* ---------- Fiche détaillée ---------- */
   function stat(label, value) {
     return h('div', {}, h('dt', {}, label), h('dd', {}, value || '—'));
@@ -519,9 +638,12 @@
     var tags = [c.raceFr, c.genderFr, c.affFr].filter(Boolean);
     var desc = h('p', { class: 'desc' });
     var note = h('p', { class: 'desc-note' });
+    var hero = h('div', { class: 'aura hero' }, picture(c));
+    var gallery = h('div', { class: 'gallery' });
     $dlg.replaceChildren(h('div', { class: 'sheet' },
       h('button', { class: 'close', type: 'button', 'aria-label': 'Fermer', onclick: closeDetail }, '×'),
-      h('div', { class: 'aura hero' }, picture(c)),
+      hero,
+      gallery,
       h('div', { class: 'body' },
         h('h2', {}, c.dn),
         h('div', { class: 'tags' }, tags.map(function (t) { return h('span', { class: 'tag' }, t); })),
@@ -535,6 +657,7 @@
       )
     ));
     fillDescription(c, desc, note);
+    loadGallery(c, hero, gallery);
   }
   function openDetail(c) {
     state.current = c;
