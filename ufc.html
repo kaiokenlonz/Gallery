@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Galerie UFC">
+<title>Galerie UFC</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,700..900&family=Karla:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #E6E9ED;
+    --panel: #FFFFFF;
+    --ink: #12151A;
+    --muted: #566070;
+    --line: #C3CAD4;
+    --accent: #D3202A;
+    --accent-ink: #FFFFFF;
+    --display: 'Archivo', 'Arial Black', system-ui, sans-serif;
+    --text: 'Karla', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --aura: radial-gradient(circle at 50% 92%, #FF6A5C 0%, #C81E28 48%, #4A0B10 100%);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0E1013;
+      --panel: #181B21;
+      --ink: #F1F3F6;
+      --muted: #9AA3B2;
+      --line: #2A2F38;
+    }
+  }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  *, *::before, *::after { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 16px/1.45 var(--text);
+    -webkit-text-size-adjust: 100%;
+  }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  button { font: inherit; color: inherit; }
+
+  header { padding: 18px 20px 4px; max-width: 720px; margin: 0 auto; }
+  h1 {
+    font: 900 34px/1 var(--display);
+    font-stretch: 118%;
+    letter-spacing: -0.01em;
+    margin: 0 0 6px;
+  }
+  .count { margin: 0; color: var(--muted); font-size: 15px; min-height: 22px; }
+
+  .tools {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 5;
+    background: var(--bg);
+    padding: 10px 20px 10px;
+  }
+  .tools-in { max-width: 720px; margin: 0 auto; }
+  .search {
+    width: 100%; height: 48px; padding: 0 16px; font: inherit; font-size: 16px;
+    color: var(--ink); background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px;
+  }
+  .search::placeholder { color: var(--muted); }
+  .chips { display: flex; gap: 8px; overflow-x: auto; padding: 10px 0 2px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex: none; height: 40px; padding: 0 16px; border-radius: 999px; border: 1.5px solid var(--line);
+    background: transparent; font-weight: 700; font-size: 14px; cursor: pointer; white-space: nowrap;
+  }
+  .chip[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--bg); }
+
+  main { max-width: 720px; margin: 0 auto; padding: 6px 20px 40px; }
+  .status { margin: 14px 0; padding: 16px; background: var(--panel); border-radius: 14px; color: var(--muted); }
+  .status:empty { display: none; }
+  .status strong { display: block; color: var(--ink); margin-bottom: 4px; }
+  .btn {
+    margin-top: 12px; height: 44px; padding: 0 18px; border: 0; border-radius: 12px;
+    background: var(--accent); color: var(--accent-ink); font-weight: 700; cursor: pointer;
+  }
+
+  .grid { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .card { position: relative; background: var(--panel); border-radius: 18px; overflow: hidden; }
+  .open { display: block; width: 100%; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; }
+  .aura { position: relative; display: grid; place-items: end center; aspect-ratio: 3 / 4; background: var(--aura); overflow: hidden; }
+  .aura img { width: 100%; height: 100%; object-fit: contain; object-position: bottom; display: block; }
+  .ph { align-self: center; font: 900 64px/1 var(--display); color: rgba(255, 255, 255, .45); }
+  .champ {
+    position: absolute; top: 8px; left: 8px; z-index: 1; background: var(--accent); color: var(--accent-ink);
+    font: 800 11px/1 var(--display); padding: 5px 9px; border-radius: 999px; border: 1.5px solid rgba(255, 255, 255, .85);
+  }
+  .meta { display: block; padding: 10px 12px 12px; }
+  .nm { display: block; font: 800 16px/1.2 var(--display); overflow-wrap: anywhere; }
+  .sub { display: block; margin-top: 2px; font-size: 13px; color: var(--muted); }
+  .rec { display: block; margin-top: 4px; font-size: 13px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .fav {
+    position: absolute; top: 6px; right: 6px; width: 40px; height: 40px; border: 0; border-radius: 50%;
+    background: rgba(255, 255, 255, .88); color: #12151A; display: grid; place-items: center; cursor: pointer; padding: 0;
+  }
+  .fav svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linejoin: round; }
+  .fav[aria-pressed="true"] { color: #D3202A; }
+  .fav[aria-pressed="true"] svg { fill: currentColor; }
+
+  dialog {
+    border: 0; padding: 0; background: var(--panel); color: var(--ink);
+    width: min(560px, 100%); max-width: 100%; max-height: 92vh; max-height: 92dvh;
+    margin: auto auto 0; border-radius: 22px 22px 0 0; overflow: auto;
+  }
+  dialog::backdrop { background: rgba(4, 6, 10, .65); }
+  .sheet { position: relative; padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)); }
+  .close {
+    position: absolute; top: 10px; right: 10px; z-index: 2; width: 44px; height: 44px; border: 0; border-radius: 50%;
+    background: rgba(255, 255, 255, .92); color: #12151A; font-size: 26px; line-height: 1; cursor: pointer; padding: 0;
+  }
+  .hero { aspect-ratio: 4 / 5; max-height: 46vh; width: 100%; touch-action: pan-y; }
+  .gallery { padding: 14px 20px 0; }
+  .gallery:empty { display: none; }
+  .gal-cap { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 10px; }
+  .gal-name { display: block; font: 800 17px/1.2 var(--display); overflow-wrap: anywhere; }
+  .gal-credit { display: block; margin-top: 2px; font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .gal-credit:empty { display: none; }
+  .gal-credit a { color: var(--ink); }
+  .gal-count { font-size: 13px; color: var(--muted); white-space: nowrap; }
+  .gal-msg { margin: 0; font-size: 14px; color: var(--muted); }
+  .thumbs { position: relative; display: flex; gap: 8px; overflow-x: auto; padding: 3px 3px 6px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .thumbs::-webkit-scrollbar { display: none; }
+  .thumb { flex: none; width: 64px; height: 80px; border: 3px solid transparent; border-radius: 14px; padding: 0; background: none; overflow: hidden; cursor: pointer; }
+  .thumb .aura { width: 100%; height: 100%; aspect-ratio: auto; border-radius: 10px; }
+  .thumb .ph { font-size: 24px; }
+  .thumb[aria-pressed="true"] { border-color: var(--accent); }
+  .body { padding: 18px 20px 0; }
+  h2 { font: 900 28px/1.05 var(--display); font-stretch: 112%; margin: 0 0 4px; }
+  .nick { margin: 0 0 10px; color: var(--muted); font-size: 15px; }
+  .nick:empty { display: none; }
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .tag { background: var(--bg); border-radius: 999px; padding: 3px 12px; font-size: 13px; font-weight: 700; }
+  .tag.hot { background: var(--accent); color: var(--accent-ink); }
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 0 0 18px; }
+  .stats div { background: var(--bg); border-radius: 12px; padding: 10px 12px; min-width: 0; }
+  .stats .wide { grid-column: 1 / -1; }
+  .stats dt { font-size: 12px; color: var(--muted); font-weight: 700; }
+  .stats dd { margin: 2px 0 0; font-weight: 700; overflow-wrap: anywhere; }
+  .fbtn {
+    width: 100%; height: 48px; border-radius: 14px; border: 1.5px solid var(--line); background: transparent;
+    font-weight: 700; cursor: pointer;
+  }
+  .fbtn[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Galerie UFC</h1>
+  <p class="count" id="count"></p>
+</header>
+<div class="tools">
+  <div class="tools-in">
+    <input class="search" id="search" type="search" placeholder="Chercher un combattant" aria-label="Chercher un combattant" autocomplete="off" enterkeyhint="search">
+    <div class="chips" id="chips" role="group" aria-label="Filtres"></div>
+  </div>
+</div>
+<main>
+  <div class="status" id="status" role="status"></div>
+  <ul class="grid" id="grid"></ul>
+</main>
+<dialog id="dlg" aria-label="Fiche du combattant"></dialog>
+
+<script>
+(function () {
+  'use strict';
+
+  var API = 'https://api.octagon-api.com';
+  var COMMONS = 'https://commons.wikimedia.org/w/api.php';
+  var CACHE_KEY = 'ufc:fighters:v1';
+  var RANK_KEY = 'ufc:rankings:v1';
+  var FAV_KEY = 'ufc:favs:v1';
+  var PHOTO_KEY = 'ufc:photos:v1';
+  var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.3-9C1 8.6 3 5.5 6.2 5.5c2 0 3.5 1.1 4.3 2.5h3c.8-1.4 2.3-2.5 4.3-2.5 3.2 0 5.200 3.100 3.500 6.500C19 16.600 12 21 12 21z"/></svg>';
+
+  /* ---------- Traductions françaises ---------- */
+  var DIV = {
+    'strawweight': 'Poids pailles', 'flyweight': 'Poids mouches', 'bantamweight': 'Poids coqs',
+    'featherweight': 'Poids plumes', 'lightweight': 'Poids légers', 'welterweight': 'Poids mi-moyens',
+    'middleweight': 'Poids moyens', 'light heavyweight': 'Poids mi-lourds', 'heavyweight': 'Poids lourds'
+  };
+  var DIV_ORDER = ['strawweight', 'flyweight', 'bantamweight', 'featherweight', 'lightweight', 'welterweight', 'middleweight', 'light heavyweight', 'heavyweight'];
+  var STATUS = { 'active': 'Actif', 'retired': 'Retraité', 'not fighting': 'Inactif', 'inactive': 'Inactif' };
+  var STYLE = {
+    'wrestling': 'Lutte', 'boxing': 'Boxe', 'kickboxing': 'Kickboxing', 'brazilian jiu-jitsu': 'Jiu-jitsu brésilien',
+    'muay thai': 'Muay-thaï', 'sambo': 'Sambo', 'judo': 'Judo', 'karate': 'Karaté', 'taekwondo': 'Taekwondo',
+    'striker': 'Frappeur', 'grappler': 'Lutteur au sol', 'brawler': 'Bagarreur', 'submission artist': 'Spécialiste des soumissions'
+  };
+  var COUNTRY = {
+    'united states': 'États-Unis', 'russia': 'Russie', 'brazil': 'Brésil', 'england': 'Angleterre',
+    'united kingdom': 'Royaume-Uni', 'scotland': 'Écosse', 'wales': 'Pays de Galles', 'ireland': 'Irlande',
+    'northern ireland': 'Irlande du Nord', 'australia': 'Australie', 'new zealand': 'Nouvelle-Zélande',
+    'mexico': 'Mexique', 'poland': 'Pologne', 'nigeria': 'Nigéria', 'cameroon': 'Cameroun', 'china': 'Chine',
+    'japan': 'Japon', 'kazakhstan': 'Kazakhstan', 'kyrgyzstan': 'Kirghizistan', 'ukraine': 'Ukraine',
+    'netherlands': 'Pays-Bas', 'germany': 'Allemagne', 'spain': 'Espagne', 'italy': 'Italie', 'sweden': 'Suède',
+    'norway': 'Norvège', 'finland': 'Finlande', 'denmark': 'Danemark', 'switzerland': 'Suisse', 'austria': 'Autriche',
+    'belgium': 'Belgique', 'croatia': 'Croatie', 'serbia': 'Serbie', 'czech republic': 'République tchèque',
+    'romania': 'Roumanie', 'bulgaria': 'Bulgarie', 'lithuania': 'Lituanie', 'armenia': 'Arménie',
+    'azerbaijan': 'Azerbaïdjan', 'uzbekistan': 'Ouzbékistan', 'tajikistan': 'Tadjikistan', 'south korea': 'Corée du Sud',
+    'thailand': 'Thaïlande', 'argentina': 'Argentine', 'chile': 'Chili', 'peru': 'Pérou', 'colombia': 'Colombie',
+    'dominican republic': 'République dominicaine', 'jamaica': 'Jamaïque', 'south africa': 'Afrique du Sud',
+    'morocco': 'Maroc', 'algeria': 'Algérie', 'ivory coast': 'Côte d’Ivoire', 'turkey': 'Turquie', 'israel': 'Israël',
+    'egypt': 'Égypte', 'saudi arabia': 'Arabie saoudite', 'moldova': 'Moldavie', 'slovakia': 'Slovaquie',
+    'hungary': 'Hongrie', 'greece': 'Grèce', 'sudan': 'Soudan', 'ecuador': 'Équateur', 'bolivia': 'Bolivie',
+    'costa rica': 'Costa Rica', 'puerto rico': 'Porto Rico', 'lebanon': 'Liban', 'iraq': 'Irak'
+  };
+  var MONTHS = {
+    'jan': 'janvier', 'feb': 'février', 'mar': 'mars', 'apr': 'avril', 'may': 'mai', 'jun': 'juin',
+    'jul': 'juillet', 'aug': 'août', 'sep': 'septembre', 'oct': 'octobre', 'nov': 'novembre', 'dec': 'décembre'
+  };
+
+  var state = { all: [], q: '', filter: 'all', favs: loadFavs(), fromCache: false, current: null };
+  var photoCache = loadJSON(PHOTO_KEY, {});
+  var photoInflight = {};
+
+  var $count = document.getElementById('count');
+  var $search = document.getElementById('search');
+  var $chips = document.getElementById('chips');
+  var $status = document.getElementById('status');
+  var $grid = document.getElementById('grid');
+  var $dlg = document.getElementById('dlg');
+
+  /* ---------- Utilitaires ---------- */
+  function h(tag, props) {
+    var el = document.createElement(tag);
+    props = props || {};
+    Object.keys(props).forEach(function (k) {
+      var v = props[k];
+      if (v === null || v === undefined || v === false) return;
+      if (k === 'class') el.className = v;
+      else if (k === 'html') el.innerHTML = v;
+      else if (k.indexOf('on') === 0) el.addEventListener(k.slice(2), v);
+      else el.setAttribute(k, v);
+    });
+    for (var i = 2; i < arguments.length; i++) {
+      var kids = [].concat(arguments[i]);
+      for (var j = 0; j < kids.length; j++) {
+        var kid = kids[j];
+        if (kid === null || kid === undefined || kid === false) continue;
+        el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+      }
+    }
+    return el;
+  }
+  function norm(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+  function loadJSON(key, fallback) {
+    try {
+      var v = JSON.parse(localStorage.getItem(key));
+      return v === null || v === undefined ? fallback : v;
+    } catch (e) { return fallback; }
+  }
+  function saveJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
+  function loadFavs() {
+    var map = {};
+    var arr = loadJSON(FAV_KEY, []);
+    if (Array.isArray(arr)) arr.forEach(function (id) { map[String(id)] = true; });
+    return map;
+  }
+  function saveFavs() {
+    saveJSON(FAV_KEY, Object.keys(state.favs).filter(function (k) { return state.favs[k]; }));
+  }
+  function fetchJSON(url) {
+    return fetch(url).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    });
+  }
+  function httpsUrl(u) { return typeof u === 'string' && u.indexOf('https://') === 0 ? u : ''; }
+  function num(x) { var n = parseFloat(String(x == null ? '' : x).replace(',', '.')); return isNaN(n) ? 0 : n; }
+  function titleCase(id) { return String(id).replace(/[-_]+/g, ' ').replace(/\b\w/g, function (m) { return m.toUpperCase(); }); }
+
+  /* ---------- Conversions vers les unités françaises ---------- */
+  function frCategory(cat) {
+    var s = String(cat || '').replace(/\s*division\s*$/i, '').replace(/\s*top rank\s*$/i, '').trim();
+    if (!s) return { label: 'Non renseignée', key: '', women: false };
+    var women = /^women'?s\s+/i.test(s);
+    s = s.replace(/^(men'?s|women'?s)\s+/i, '');
+    var key = norm(s).replace(/-/g, ' ');
+    var base = key.indexOf('pound') !== -1 ? 'Toutes catégories' : (DIV[key] || s);
+    return { label: base + (women ? ' (femmes)' : ''), key: key, women: women };
+  }
+  function frHeight(inches) {
+    var n = num(inches);
+    if (!n) return '';
+    return (Math.round(n * 2.54) / 100).toFixed(2).replace('.', ',') + ' m';
+  }
+  function frWeight(lbs) {
+    var n = num(lbs);
+    return n ? Math.round(n * 0.45359237) + ' kg' : '';
+  }
+  function frLength(inches) {
+    var n = num(inches);
+    return n ? Math.round(n * 2.54) + ' cm' : '';
+  }
+  function frDate(s) {
+    var m = String(s || '').trim().match(/^([A-Za-z]+)\.?\s+(\d{1,2}),?\s+(\d{4})$/);
+    if (!m) return String(s || '').trim();
+    var mo = MONTHS[m[1].toLowerCase().slice(0, 3)];
+    if (!mo) return String(s || '').trim();
+    return (m[2] === '1' ? '1er' : String(parseInt(m[2], 10))) + ' ' + mo + ' ' + m[3];
+  }
+  function frPlace(p) {
+    var parts = String(p || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+    if (!parts.length) return '';
+    var last = parts.length - 1;
+    parts[last] = COUNTRY[norm(parts[last])] || parts[last];
+    return parts.join(', ');
+  }
+
+  function cleanFighter(id, f) {
+    f = f || {};
+    var cat = frCategory(f.category);
+    var wins = parseInt(f.wins, 10) || 0, losses = parseInt(f.losses, 10) || 0, draws = parseInt(f.draws, 10) || 0;
+    var o = {
+      id: String(id),
+      name: String(f.name || '').trim() || titleCase(id),
+      nickname: String(f.nickname || '').trim(),
+      catRaw: String(f.category || ''),
+      catFr: cat.label,
+      catKey: cat.key,
+      women: cat.women,
+      order: (cat.women ? 100 : 0) + (DIV_ORDER.indexOf(cat.key) === -1 ? 50 : DIV_ORDER.indexOf(cat.key)),
+      record: wins + '-' + losses + '-' + draws,
+      hasRecord: !!(f.wins || f.losses || f.draws),
+      statusFr: STATUS[norm(f.status)] || String(f.status || ''),
+      place: frPlace(f.placeOfBirth),
+      trains: String(f.trainsAt || '').trim(),
+      style: STYLE[norm(f.fightingStyle)] || String(f.fightingStyle || '').trim(),
+      age: String(f.age || '').trim(),
+      height: frHeight(f.height),
+      weight: frWeight(f.weight),
+      reach: frLength(f.reach),
+      legReach: frLength(f.legReach),
+      debut: frDate(f.octagonDebut),
+      image: httpsUrl(f.imgUrl),
+      champ: false,
+      rank: 0
+    };
+    return o;
+  }
+
+  /* ---------- Données ---------- */
+  function buildList(raw) {
+    var list = [];
+    if (Array.isArray(raw)) {
+      raw.forEach(function (f, i) { list.push(cleanFighter((f && (f.id || f.slug)) || i, f)); });
+    } else if (raw && typeof raw === 'object') {
+      Object.keys(raw).forEach(function (id) { list.push(cleanFighter(id, raw[id])); });
+    }
+    return list.filter(function (f) { return f.name; });
+  }
+  function applyRankings(list, rankings) {
+    var champs = {}, ranks = {};
+    (Array.isArray(rankings) ? rankings : []).forEach(function (cat) {
+      if (!cat || /pound.for.pound/i.test(String(cat.id || cat.categoryName || ''))) return;
+      if (cat.champion && cat.champion.id) champs[cat.champion.id] = true;
+      (cat.fighters || []).forEach(function (f, i) { if (f && f.id && ranks[f.id] === undefined) ranks[f.id] = i + 1; });
+    });
+    list.forEach(function (f) { f.champ = !!champs[f.id]; f.rank = ranks[f.id] || 0; });
+    list.sort(function (a, b) {
+      return (a.order - b.order) || (Number(b.champ) - Number(a.champ)) || ((a.rank || 99) - (b.rank || 99)) || a.name.localeCompare(b.name, 'fr');
+    });
+    return list;
+  }
+  function start() {
+    $status.replaceChildren(h('strong', {}, 'Chargement des combattants…'));
+    Promise.all([
+      fetchJSON(API + '/fighters'),
+      fetchJSON(API + '/rankings').catch(function () { return null; })
+    ]).then(function (res) {
+      var list = buildList(res[0]);
+      if (!list.length) throw new Error('empty');
+      saveJSON(CACHE_KEY, res[0]);
+      if (res[1]) saveJSON(RANK_KEY, res[1]);
+      state.all = applyRankings(list, res[1] || loadJSON(RANK_KEY, null));
+      state.fromCache = false;
+      ready();
+    }).catch(function () {
+      var list = buildList(loadJSON(CACHE_KEY, null));
+      if (list.length) {
+        state.all = applyRankings(list, loadJSON(RANK_KEY, null));
+        state.fromCache = true;
+        ready();
+      } else { showError(); }
+    });
+  }
+  function showError() {
+    $count.textContent = '';
+    $status.replaceChildren(
+      h('strong', {}, 'Impossible de joindre l’API UFC'),
+      'Vérifie ta connexion, puis réessaie.',
+      h('br'),
+      h('button', { class: 'btn', type: 'button', onclick: start }, 'Réessayer')
+    );
+  }
+  function ready() {
+    buildChips();
+    render();
+  }
+
+  /* ---------- Filtres ---------- */
+  function buildChips() {
+    var seen = {}, cats = [];
+    state.all.forEach(function (f) {
+      if (!seen[f.catFr]) { seen[f.catFr] = true; cats.push({ label: f.catFr, order: f.order }); }
+    });
+    cats.sort(function (a, b) { return a.order - b.order; });
+    var defs = [{ id: 'all', label: 'Tous' }, { id: 'fav', label: 'Favoris' }];
+    if (state.all.some(function (f) { return f.champ; })) defs.push({ id: 'champ', label: 'Champions' });
+    cats.forEach(function (c) { defs.push({ id: 'cat:' + c.label, label: c.label }); });
+    $chips.replaceChildren.apply($chips, defs.map(function (d) {
+      return h('button', {
+        class: 'chip', type: 'button', 'data-id': d.id, 'aria-pressed': 'false',
+        onclick: function () { state.filter = d.id; updateChips(); render(); }
+      }, d.label);
+    }));
+    updateChips();
+  }
+  function updateChips() {
+    Array.prototype.forEach.call($chips.children, function (b) {
+      b.setAttribute('aria-pressed', String(b.getAttribute('data-id') === state.filter));
+    });
+  }
+  function filtered() {
+    var q = norm(state.q);
+    return state.all.filter(function (f) {
+      if (state.filter === 'fav' && !state.favs[f.id]) return false;
+      if (state.filter === 'champ' && !f.champ) return false;
+      if (state.filter.indexOf('cat:') === 0 && 'cat:' + f.catFr !== state.filter) return false;
+      if (q && norm([f.name, f.nickname, f.catFr, f.catRaw, f.place].join(' ')).indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+
+  /* ---------- Affichage ---------- */
+  function pic(url, alt, initial) {
+    if (!url) return h('span', { class: 'ph' }, initial.charAt(0));
+    var img = h('img', { src: url, alt: alt, loading: 'lazy', decoding: 'async', referrerpolicy: 'no-referrer' });
+    img.addEventListener('error', function () { img.replaceWith(h('span', { class: 'ph' }, initial.charAt(0))); });
+    return img;
+  }
+  function picture(f) { return pic(f.image, f.name, f.name); }
+  function champLabel(f) { return f.women ? 'Championne' : 'Champion'; }
+  function favBtn(f) {
+    var on = !!state.favs[f.id];
+    return h('button', {
+      class: 'fav', type: 'button', html: HEART,
+      'aria-pressed': String(on),
+      'aria-label': (on ? 'Retirer des favoris : ' : 'Ajouter aux favoris : ') + f.name,
+      onclick: function () { toggleFav(f); }
+    });
+  }
+  function card(f) {
+    var recText = f.hasRecord ? f.record + (f.rank ? ', n° ' + f.rank : '') : (f.rank ? 'n° ' + f.rank : '');
+    return h('li', { class: 'card' },
+      h('button', { class: 'open', type: 'button', 'aria-label': 'Voir la fiche de ' + f.name, onclick: function () { openDetail(f); } },
+        h('span', { class: 'aura' }, picture(f), f.champ ? h('span', { class: 'champ' }, champLabel(f)) : null),
+        h('span', { class: 'meta' },
+          h('span', { class: 'nm' }, f.name),
+          h('span', { class: 'sub' }, f.catFr),
+          recText ? h('span', { class: 'rec' }, recText) : null)
+      ),
+      favBtn(f)
+    );
+  }
+  function render() {
+    var list = filtered();
+    $count.textContent = list.length === state.all.length
+      ? state.all.length + ' combattants'
+      : list.length + ' sur ' + state.all.length + ' combattants';
+    $grid.replaceChildren.apply($grid, list.map(card));
+    if (!list.length && state.all.length) {
+      var onlyFav = state.filter === 'fav' && !state.q;
+      $status.replaceChildren(
+        h('strong', {}, onlyFav ? 'Aucun favori pour l’instant' : 'Aucun résultat'),
+        onlyFav ? 'Touche le cœur d’un combattant pour l’ajouter ici.' : 'Efface la recherche ou choisis « Tous ».'
+      );
+    } else if (state.fromCache) {
+      $status.replaceChildren(h('strong', {}, 'Mode hors ligne'), 'Affichage de la dernière liste enregistrée sur ton téléphone.');
+    } else {
+      $status.replaceChildren();
+    }
+  }
+  function toggleFav(f) {
+    state.favs[f.id] = !state.favs[f.id];
+    saveFavs();
+    render();
+    updateDetailFav(f);
+  }
+  function updateDetailFav(f) {
+    if (!$dlg.open || !state.current || state.current.id !== f.id) return;
+    var b = $dlg.querySelector('.fbtn');
+    if (!b) return;
+    var on = !!state.favs[f.id];
+    b.setAttribute('aria-pressed', String(on));
+    b.textContent = on ? 'Dans mes favoris' : 'Ajouter aux favoris';
+  }
+
+  /* ---------- Photos supplémentaires (Wikimedia Commons) ---------- */
+  function stripHtml(s) { return new DOMParser().parseFromString(String(s || ''), 'text/html').documentElement.textContent.trim(); }
+  function cleanTitle(t) {
+    var s = String(t || '').replace(/^File:/i, '').replace(/\.[A-Za-z0-9]+$/, '').replace(/_/g, ' ').trim();
+    return s.length > 48 ? s.slice(0, 47) + '…' : s;
+  }
+  function relevant(title, desc, name) {
+    var t = norm(title);
+    var parts = norm(name).split(/\s+/).filter(Boolean);
+    if (!parts.length) return false;
+    var last = parts[parts.length - 1], first = parts[0];
+    if (t.indexOf(last) === -1) return false;
+    return t.indexOf(first) !== -1 || /ufc|mma|mixed martial|bellator|fighter/.test(t + ' ' + norm(desc));
+  }
+  function getPhotos(f) {
+    var cached = photoCache[f.id];
+    if (cached && cached.length) return Promise.resolve(cached);
+    if (photoInflight[f.id]) return photoInflight[f.id];
+    var url = COMMONS + '?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=30'
+      + '&gsrsearch=' + encodeURIComponent('"' + f.name + '" filetype:bitmap')
+      + '&prop=imageinfo&iiprop=url%7Cmime%7Cextmetadata&iiurlwidth=640';
+    var p = fetchJSON(url).then(function (d) {
+      var pages = (d && d.query && d.query.pages) || {};
+      var arr = Object.keys(pages).map(function (k) { return pages[k]; });
+      arr.sort(function (a, b) { return (a.index || 0) - (b.index || 0); });
+      var out = [];
+      arr.forEach(function (pg) {
+        var ii = pg.imageinfo && pg.imageinfo[0];
+        if (!ii || !/^image\/(jpeg|png|webp)$/i.test(ii.mime || '')) return;
+        var meta = ii.extmetadata || {};
+        var desc = stripHtml(meta.ImageDescription && meta.ImageDescription.value);
+        if (!relevant(pg.title, desc, f.name)) return;
+        var img = httpsUrl(ii.thumburl) || httpsUrl(ii.url);
+        if (!img) return;
+        var artist = stripHtml(meta.Artist && meta.Artist.value) || 'auteur inconnu';
+        if (artist.length > 60) artist = artist.slice(0, 57) + '…';
+        var lic = stripHtml(meta.LicenseShortName && meta.LicenseShortName.value);
+        out.push({
+          label: cleanTitle(pg.title), image: img,
+          credit: 'Photo : ' + artist + (lic ? ' (' + lic + ')' : ''), page: httpsUrl(ii.descriptionurl)
+        });
+      });
+      out = out.slice(0, 8);
+      delete photoInflight[f.id];
+      if (out.length) { photoCache[f.id] = out; saveJSON(PHOTO_KEY, photoCache); }
+      return out;
+    }, function (err) { delete photoInflight[f.id]; throw err; });
+    photoInflight[f.id] = p;
+    return p;
+  }
+  function loadGallery(f, hero, box) {
+    box.replaceChildren(h('p', { class: 'gal-msg' }, 'Chargement de la galerie…'));
+    getPhotos(f).then(function (extra) { build(extra, false); }, function () { build([], true); });
+
+    function build(extra, failed) {
+      if (!box.isConnected) return;
+      var items = f.image ? [{ label: 'Photo officielle UFC', image: f.image, credit: '© UFC', page: '' }] : [];
+      items = items.concat(extra);
+      if (items.length < 2) {
+        var msg = failed ? 'Photos supplémentaires indisponibles pour le moment.'
+          : (items.length ? 'Pas d’autre photo trouvée pour ce combattant.' : 'Aucune photo disponible pour ce combattant.');
+        box.replaceChildren(h('p', { class: 'gal-msg' }, msg));
+        return;
+      }
+      var idx = 0;
+      var nameEl = h('span', { class: 'gal-name' });
+      var creditEl = h('span', { class: 'gal-credit' });
+      var countEl = h('span', { class: 'gal-count' });
+      var thumbs = h('div', { class: 'thumbs', role: 'group', 'aria-label': 'Photos de ' + f.name });
+      var btns = items.map(function (it, i) {
+        var b = h('button', { class: 'thumb', type: 'button', 'aria-label': it.label, 'aria-pressed': 'false', onclick: function () { show(i, true); } },
+          h('span', { class: 'aura' }, pic(it.image, it.label, f.name)));
+        thumbs.append(b);
+        return b;
+      });
+      function show(i, scroll) {
+        idx = Math.max(0, Math.min(items.length - 1, i));
+        var it = items[idx];
+        hero.replaceChildren(pic(it.image, f.name + ' : ' + it.label, f.name));
+        nameEl.textContent = it.label;
+        creditEl.replaceChildren();
+        if (it.credit) {
+          creditEl.append(it.credit);
+          if (it.page) creditEl.append(' ', h('a', { href: it.page, target: '_blank', rel: 'noopener noreferrer' }, 'Voir la source'));
+        }
+        countEl.textContent = (idx + 1) + ' sur ' + items.length;
+        btns.forEach(function (b, j) { b.setAttribute('aria-pressed', String(j === idx)); });
+        if (scroll) {
+          var b = btns[idx];
+          thumbs.scrollTo({ left: b.offsetLeft - (thumbs.clientWidth - b.offsetWidth) / 2 });
+        }
+      }
+      var sx = null, sy = 0;
+      hero.addEventListener('touchstart', function (e) { var t = e.touches[0]; sx = t.clientX; sy = t.clientY; }, { passive: true });
+      hero.addEventListener('touchend', function (e) {
+        if (sx === null) return;
+        var t = e.changedTouches[0];
+        var dx = t.clientX - sx, dy = t.clientY - sy;
+        sx = null;
+        if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) show(idx + (dx < 0 ? 1 : -1), true);
+      }, { passive: true });
+      box.replaceChildren(h('div', { class: 'gal-cap' }, h('span', {}, nameEl, creditEl), countEl), thumbs);
+      show(0, false);
+    }
+  }
+
+  /* ---------- Fiche détaillée ---------- */
+  function stat(label, value, wide) {
+    return value ? h('div', wide ? { class: 'wide' } : {}, h('dt', {}, label), h('dd', {}, value)) : null;
+  }
+  function fillDetail(f) {
+    var faved = !!state.favs[f.id];
+    var tags = [];
+    if (f.champ) tags.push(h('span', { class: 'tag hot' }, champLabel(f)));
+    if (f.rank) tags.push(h('span', { class: 'tag' }, 'n° ' + f.rank));
+    tags.push(h('span', { class: 'tag' }, f.catFr));
+    if (f.statusFr) tags.push(h('span', { class: 'tag' }, f.statusFr));
+    var hero = h('div', { class: 'aura hero' }, picture(f));
+    var gallery = h('div', { class: 'gallery' });
+    $dlg.replaceChildren(h('div', { class: 'sheet' },
+      h('button', { class: 'close', type: 'button', 'aria-label': 'Fermer', onclick: closeDetail }, '×'),
+      hero,
+      gallery,
+      h('div', { class: 'body' },
+        h('h2', {}, f.name),
+        h('p', { class: 'nick' }, f.nickname ? '« ' + f.nickname + ' »' : ''),
+        h('div', { class: 'tags' }, tags),
+        h('dl', { class: 'stats' },
+          f.hasRecord ? stat('Bilan (V-D-N)', f.record) : null,
+          stat('Âge', f.age ? f.age + ' ans' : ''),
+          stat('Taille', f.height),
+          stat('Poids', f.weight),
+          stat('Allonge', f.reach),
+          stat('Allonge des jambes', f.legReach),
+          stat('Style de combat', f.style, true),
+          stat('Né à', f.place, true),
+          stat('S’entraîne à', f.trains, true),
+          stat('Débuts dans l’octogone', f.debut, true)
+        ),
+        h('button', {
+          class: 'fbtn', type: 'button', 'aria-pressed': String(faved),
+          onclick: function () { toggleFav(f); }
+        }, faved ? 'Dans mes favoris' : 'Ajouter aux favoris')
+      )
+    ));
+    loadGallery(f, hero, gallery);
+  }
+  function openDetail(f) {
+    state.current = f;
+    fillDetail(f);
+    if (typeof $dlg.showModal === 'function') $dlg.showModal(); else $dlg.setAttribute('open', '');
+  }
+  function closeDetail() {
+    if (typeof $dlg.close === 'function') $dlg.close(); else $dlg.removeAttribute('open');
+    state.current = null;
+  }
+  $dlg.addEventListener('click', function (e) { if (e.target === $dlg) closeDetail(); });
+  $dlg.addEventListener('close', function () { state.current = null; });
+
+  $search.addEventListener('input', function () { state.q = $search.value; if (state.all.length) render(); });
+
+  start();
+})();
+</script>
+</body>
+</html>
