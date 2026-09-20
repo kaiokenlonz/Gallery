@@ -125,6 +125,10 @@
   .stats dt { font-size: 12px; color: var(--muted); font-weight: 700; }
   .stats dd { margin: 2px 0 0; font-weight: 700; overflow-wrap: anywhere; }
   .desc { margin: 0 0 18px; max-width: 60ch; }
+  .desc.pending { color: var(--muted); font-style: italic; }
+  .desc:empty { display: none; }
+  .desc-note { margin: -10px 0 18px; font-size: 13px; color: var(--muted); }
+  .desc-note:empty { display: none; }
   .fbtn {
     width: 100%; height: 48px; border-radius: 14px; border: 1.5px solid var(--line); background: transparent;
     font-weight: 700; cursor: pointer;
@@ -154,12 +158,57 @@
   'use strict';
 
   var API = 'https://dragonball-api.com/api';
+  var TRANSLATE_API = 'https://api.mymemory.translated.net/get';
   var CACHE_KEY = 'dbz:characters:v1';
   var FAV_KEY = 'dbz:favs:v1';
-  var GENDER = { Male: 'Homme', Female: 'Femme', Unknown: 'Inconnu' };
-  var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.3-9C1 8.6 3 5.5 6.2 5.5c2 0 3.5 1.1 4.3 2.5h3c.8-1.4 2.300-2.500 4.300-2.500 3.200 0 5.200 3.100 3.500 6.500C19 16.600 12 21 12 21z"/></svg>';
+  var TR_KEY = 'dbz:translations:v1';
+  var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.4-9.3-9C1 8.6 3 5.5 6.2 5.5c2 0 3.5 1.1 4.3 2.5h3c.8-1.4 2.3-2.5 4.3-2.5 3.2 0 5.2 3.1 3.5 6.5C19 16.6 12 21 12 21z"/></svg>';
+
+  /* ---------- Traductions françaises ---------- */
+  var RACE = {
+    'saiyan': 'Saiyan', 'human': 'Humain', 'namekian': 'Namek', 'frieza race': 'Race de Freezer',
+    'android': 'Androïde', 'majin': 'Majin', 'god': 'Dieu', 'angel': 'Ange', 'evil': 'Démon',
+    'jiren race': 'Race de Jiren', 'nucleico': 'Nucléique', 'nucleico benigno': 'Nucléique bienveillant', 'unknown': 'Inconnue'
+  };
+  var AFF = {
+    'z fighter': 'Guerriers Z', 'army of frieza': 'Armée de Freezer', 'freelancer': 'Indépendant',
+    'pride troopers': 'Pride Troopers', 'assistant of vermoud': 'Assistant de Vermoud',
+    'assistant of beerus': 'Assistant de Beerus', 'villain': 'Méchant', 'other': 'Autre',
+    'namekian warrior': 'Guerrier namek', 'red ribbon army': 'Armée du Ruban Rouge', 'galactic patrol': 'Patrouille galactique'
+  };
+  var GENDER = { 'male': 'Homme', 'female': 'Femme', 'unknown': 'Inconnu', 'genderless': 'Sans genre' };
+  var NAMES = {
+    'goku': 'Sangoku', 'vegeta': 'Végéta', 'gohan': 'Sangohan', 'goten': 'Sangoten', 'celula': 'Cell',
+    'krillin': 'Krilin', 'chi-chi': 'Chichi', 'master roshi': 'Tortue Géniale', 'maestro roshi': 'Tortue Géniale',
+    'mr. satan': 'Hercule', 'mr satan': 'Hercule', 'majin buu': 'Majin Boo', 'buu': 'Boo', 'babidi': 'Bobidi',
+    'dr. gero': 'Docteur Gero', 'uub': 'Oob', 'yajirobe': 'Yajirobé', 'tien': 'Tenshinhan', 'tien shinhan': 'Tenshinhan',
+    'chiaotzu': 'Chaozu', 'dabura': 'Dabra', 'frieza': 'Freezer'
+  };
+  /* Échelles de nombres : l'API utilise les mots anglais, on les convertit en français (échelle longue). */
+  var SCALE = {
+    'thousand': ['mille', 'mille'], 'million': ['million', 'millions'], 'billion': ['milliard', 'milliards'],
+    'trillion': ['billion', 'billions'], 'quadrillion': ['billiard', 'billiards'], 'quintillion': ['trillion', 'trillions'],
+    'sextillion': ['trilliard', 'trilliards'], 'septillion': ['quadrillion', 'quadrillions'],
+    'octillion': ['quadrilliard', 'quadrilliards'], 'nonillion': ['quintillion', 'quintillions'],
+    'decillion': ['quintilliard', 'quintilliards']
+  };
+  /* Descriptions déjà traduites à la main (personnages 1 à 10). Les autres sont traduites automatiquement. */
+  var PRE = {
+    1: { n: 'Goku', t: 'Le héros de la série, connu pour sa grande puissance et son caractère amical. Envoyé à l’origine sur Terre alors qu’il était encore bébé, avec pour mission de la conquérir. Mais une chute dans un ravin lui infligea un violent choc qui faillit le tuer, altéra sa mémoire et effaça tous les instincts violents de son espèce : il grandit ainsi avec un cœur pur et bon, tout en gardant tous les pouvoirs de sa race. Cependant, dans la nouvelle continuité de Dragon Ball, ses parents l’ont envoyé sur Terre pour qu’il survive coûte que coûte à la destruction de sa planète par Freezer. Plus tard, Kakarot, désormais connu sous le nom de Sangoku, devient le prince consort du mont Frypan et le chef des Guerriers Z, ainsi que le plus grand défenseur de la Terre et de l’Univers 7, qu’il protège de la destruction d’innombrables fois, bien qu’il ne se considère lui-même ni comme un héros ni comme un sauveur.' },
+    2: { n: 'Vegeta', t: 'Prince des Saiyans, d’abord un méchant, puis il rejoint les Guerriers Z. Bien qu’il joue un rôle d’antagoniste au début de Dragon Ball Z, il décide peu après de se rebeller contre l’Empire de Freezer et devient un allié clé des Guerriers Z. Avec le temps, il change de caractère et choisit de rester vivre sur Terre pour combattre à leurs côtés les dangers à venir. Comme Piccolo, il fait partie des anciens ennemis de Sangoku qui ont évolué : de méchant et d’antihéros, il devient finalement un héros au fil de l’histoire, et le deutéragoniste de la série.' },
+    3: { n: 'Piccolo', t: 'C’est un Namek né des derniers instants de vie de son père, dont il est la réincarnation actuelle. D’abord le pire ennemi de Sangoku, il devient peu à peu moins malfaisant jusqu’à se transformer en un être bienveillant et en membre des Guerriers Z. Avec le temps, il s’attache aussi à son disciple Sangohan, qu’il considère un peu comme son « rejeton », et une amitié se noue entre eux.' },
+    4: { n: 'Bulma', t: 'Bulma est le personnage féminin principal du manga Dragon Ball et de ses adaptations en anime : Dragon Ball, Dragon Ball Z, Dragon Ball Super et Dragon Ball GT. Fille du Dr Brief et de son épouse Panchy, petite sœur de Tights et grande amie de Sangoku, avec qui elle part à la recherche des Boules de Cristal. Dans Dragon Ball Z, elle a Trunks, premier enfant de celui qui deviendra son mari, Végéta, ainsi qu’une fille, Bra, et un fils adulte venu d’une ligne temporelle alternative, le Trunks du futur alternatif.' },
+    5: { n: 'Freezer', t: 'Freezer est le tyran de l’espace et le principal antagoniste de la saga de Freezer.' },
+    6: { n: 'Zarbon', t: 'Zarbon est l’un des sbires de Freezer et un combattant puissant.' },
+    7: { n: 'Dodoria', t: 'Dodoria est un autre sbire de Freezer, connu pour sa brutalité.' },
+    8: { n: 'Ginyu', t: 'Ginyu est le chef de l’élite des mercenaires les plus prestigieux de l’armée de Freezer, qui porte le nom de Forces Spéciales Ginyu en son honneur.' },
+    9: { n: 'Celula', t: 'Cell est un bioandroïde créé par l’ordinateur du Dr Gero. Venu du futur de la ligne temporelle 3, il voulait se venger de Sangoku, qui avait détruit l’armée du Ruban Rouge, et réaliser le rêve de tout méchant : dominer le monde. C’est l’antagoniste principal de l’arc des Androïdes et de Cell.' },
+    10: { n: 'Gohan', t: 'Sangohan est l’un des personnages principaux des arcs de Dragon Ball Z, Dragon Ball Super et Dragon Ball GT. C’est un sang-mêlé, moitié Saiyan et moitié humain terrien. Premier fils de Sangoku et de Chichi, grand frère de Sangoten, époux de Videl et père de Pan.' }
+  };
 
   var state = { all: [], q: '', aff: 'all', favs: loadFavs(), fromCache: false, current: null };
+  var trCache = loadJSON(TR_KEY, {});
+  var inflight = {};
 
   var $count = document.getElementById('count');
   var $search = document.getElementById('search');
@@ -190,22 +239,47 @@
     }
     return el;
   }
-  function norm(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase(); }
+  function norm(s) { return String(s || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim(); }
+  function loadJSON(key, fallback) {
+    try {
+      var v = JSON.parse(localStorage.getItem(key));
+      return v === null || v === undefined ? fallback : v;
+    } catch (e) { return fallback; }
+  }
+  function saveJSON(key, value) {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch (e) {}
+  }
   function loadFavs() {
     var map = {};
-    try {
-      var arr = JSON.parse(localStorage.getItem(FAV_KEY) || '[]');
-      if (Array.isArray(arr)) arr.forEach(function (id) { map[String(id)] = true; });
-    } catch (e) {}
+    var arr = loadJSON(FAV_KEY, []);
+    if (Array.isArray(arr)) arr.forEach(function (id) { map[String(id)] = true; });
     return map;
   }
   function saveFavs() {
-    try {
-      localStorage.setItem(FAV_KEY, JSON.stringify(Object.keys(state.favs).filter(function (k) { return state.favs[k]; })));
-    } catch (e) {}
+    saveJSON(FAV_KEY, Object.keys(state.favs).filter(function (k) { return state.favs[k]; }));
+  }
+  function frName(n) {
+    var m = n.match(/^andro[ií]d[e]?\s*(\d+)$/i);
+    if (m) return 'C-' + m[1];
+    return NAMES[norm(n)] || n;
+  }
+  function frNum(s) {
+    s = String(s == null ? '' : s).trim();
+    if (!s) return '—';
+    var m = s.match(/^([\d.,\s]+?)\s*([A-Za-z]+)$/);
+    if (m) {
+      var w = SCALE[m[2].toLowerCase()];
+      if (w) {
+        var n = parseFloat(m[1].replace(/\s/g, '').replace(',', '.'));
+        var many = isNaN(n) || n >= 2;
+        return m[1].trim().replace('.', ',') + ' ' + w[many ? 1 : 0];
+      }
+    }
+    if (norm(s) === 'unknown') return 'Inconnu';
+    return s;
   }
   function cleanItem(c) {
-    return {
+    var o = {
       id: c.id,
       name: String(c.name || '').trim(),
       ki: c.ki == null ? '' : String(c.ki),
@@ -216,6 +290,11 @@
       image: typeof c.image === 'string' && c.image.indexOf('https://') === 0 ? c.image : '',
       affiliation: c.affiliation ? String(c.affiliation) : ''
     };
+    o.dn = frName(o.name);
+    o.raceFr = RACE[norm(o.race)] || o.race;
+    o.affFr = AFF[norm(o.affiliation)] || o.affiliation;
+    o.genderFr = GENDER[norm(o.gender)] || o.gender;
+    return o;
   }
 
   /* ---------- Données ---------- */
@@ -240,16 +319,14 @@
     });
   }
   function readCache() {
-    try {
-      var arr = JSON.parse(localStorage.getItem(CACHE_KEY) || '[]');
-      return Array.isArray(arr) ? arr.map(cleanItem).filter(function (c) { return c.name; }) : [];
-    } catch (e) { return []; }
+    var arr = loadJSON(CACHE_KEY, []);
+    return Array.isArray(arr) ? arr.map(cleanItem).filter(function (c) { return c.name; }) : [];
   }
   function start() {
     $status.replaceChildren(h('strong', {}, 'Chargement des personnages…'));
     loadAll().then(function (list) {
       state.all = list; state.fromCache = false;
-      try { localStorage.setItem(CACHE_KEY, JSON.stringify(list)); } catch (e) {}
+      saveJSON(CACHE_KEY, list);
       ready();
     }).catch(function () {
       var cached = readCache();
@@ -267,12 +344,77 @@
     );
   }
   function ready() {
-    $status.replaceChildren();
-    if (state.fromCache) {
-      $status.append(h('strong', {}, 'Mode hors ligne'), 'Affichage de la dernière liste enregistrée sur ton téléphone.');
-    }
     buildChips();
     render();
+  }
+
+  /* ---------- Traduction automatique des descriptions ---------- */
+  function decode(s) { return new DOMParser().parseFromString(s, 'text/html').documentElement.textContent; }
+  function chunks(text) {
+    var parts = text.match(/[^.!?…]+[.!?…]*\s*/g) || [text];
+    var out = [], cur = '';
+    parts.forEach(function (p) {
+      if ((cur + p).length > 450) {
+        if (cur) out.push(cur);
+        cur = p;
+        while (cur.length > 450) { out.push(cur.slice(0, 450)); cur = cur.slice(450); }
+      } else { cur += p; }
+    });
+    if (cur.trim()) out.push(cur);
+    return out;
+  }
+  function translateText(text) {
+    var parts = chunks(text.replace(/\[\d+\]/g, '').trim());
+    var res = [];
+    return parts.reduce(function (p, part) {
+      return p.then(function () {
+        return fetch(TRANSLATE_API + '?langpair=es%7Cfr&q=' + encodeURIComponent(part)).then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        }).then(function (d) {
+          var t = d && d.responseData && d.responseData.translatedText;
+          if (!d || Number(d.responseStatus) !== 200 || !t || /MYMEMORY WARNING|QUERY LENGTH LIMIT|SELECT TWO DISTINCT/i.test(t)) throw new Error('translation');
+          res.push(decode(t).trim());
+        });
+      });
+    }, Promise.resolve()).then(function () { return res.join(' '); });
+  }
+  function getTranslation(c) {
+    var cached = trCache[c.id];
+    if (cached && cached.src === c.description) return Promise.resolve(cached.fr);
+    if (inflight[c.id]) return inflight[c.id];
+    var p = translateText(c.description).then(function (fr) {
+      trCache[c.id] = { src: c.description, fr: fr };
+      saveJSON(TR_KEY, trCache);
+      delete inflight[c.id];
+      return fr;
+    }, function (err) { delete inflight[c.id]; throw err; });
+    inflight[c.id] = p;
+    return p;
+  }
+  function fillDescription(c, descEl, noteEl) {
+    var pre = PRE[c.id];
+    if (pre && pre.n === c.name) { descEl.textContent = pre.t; return; }
+    if (!c.description) return;
+    var cached = trCache[c.id];
+    if (cached && cached.src === c.description) {
+      descEl.textContent = cached.fr;
+      noteEl.textContent = 'Traduit automatiquement de l’espagnol.';
+      return;
+    }
+    descEl.classList.add('pending');
+    descEl.textContent = 'Traduction en cours…';
+    getTranslation(c).then(function (fr) {
+      if (!descEl.isConnected) return;
+      descEl.classList.remove('pending');
+      descEl.textContent = fr;
+      noteEl.textContent = 'Traduit automatiquement de l’espagnol.';
+    }).catch(function () {
+      if (!descEl.isConnected) return;
+      descEl.classList.remove('pending');
+      descEl.textContent = c.description.replace(/\[\d+\]/g, '');
+      noteEl.textContent = 'Traduction indisponible pour le moment : texte d’origine en espagnol.';
+    });
   }
 
   /* ---------- Filtres ---------- */
@@ -280,7 +422,9 @@
     var counts = {};
     state.all.forEach(function (c) { if (c.affiliation) counts[c.affiliation] = (counts[c.affiliation] || 0) + 1; });
     var affs = Object.keys(counts).sort(function (a, b) { return counts[b] - counts[a] || a.localeCompare(b); });
-    var defs = [{ id: 'all', label: 'Tous' }, { id: 'fav', label: 'Favoris' }].concat(affs.map(function (a) { return { id: a, label: a }; }));
+    var defs = [{ id: 'all', label: 'Tous' }, { id: 'fav', label: 'Favoris' }].concat(affs.map(function (a) {
+      return { id: a, label: AFF[norm(a)] || a };
+    }));
     $chips.replaceChildren.apply($chips, defs.map(function (d) {
       return h('button', {
         class: 'chip', type: 'button', 'data-id': d.id, 'aria-pressed': 'false',
@@ -299,34 +443,38 @@
     return state.all.filter(function (c) {
       if (state.aff === 'fav' && !state.favs[String(c.id)]) return false;
       if (state.aff !== 'all' && state.aff !== 'fav' && c.affiliation !== state.aff) return false;
-      if (q && norm([c.name, c.race, c.affiliation].join(' ')).indexOf(q) === -1) return false;
+      if (q && norm([c.dn, c.name, c.raceFr, c.race, c.affFr, c.affiliation].join(' ')).indexOf(q) === -1) return false;
       return true;
     });
   }
 
   /* ---------- Affichage ---------- */
   function picture(c) {
-    if (!c.image) return h('span', { class: 'ph' }, c.name.charAt(0));
-    var img = h('img', { src: c.image, alt: c.name, loading: 'lazy', decoding: 'async' });
-    img.addEventListener('error', function () { img.replaceWith(h('span', { class: 'ph' }, c.name.charAt(0))); });
+    if (!c.image) return h('span', { class: 'ph' }, c.dn.charAt(0));
+    var img = h('img', { src: c.image, alt: c.dn, loading: 'lazy', decoding: 'async' });
+    img.addEventListener('error', function () { img.replaceWith(h('span', { class: 'ph' }, c.dn.charAt(0))); });
     return img;
   }
   function favBtn(c) {
+    var on = !!state.favs[String(c.id)];
     return h('button', {
       class: 'fav', type: 'button', html: HEART,
-      'aria-pressed': String(!!state.favs[String(c.id)]),
-      'aria-label': (state.favs[String(c.id)] ? 'Retirer des favoris : ' : 'Ajouter aux favoris : ') + c.name,
+      'aria-pressed': String(on),
+      'aria-label': (on ? 'Retirer des favoris : ' : 'Ajouter aux favoris : ') + c.dn,
       onclick: function () { toggleFav(c); }
     });
   }
   function card(c) {
     return h('li', { class: 'card' },
-      h('button', { class: 'open', type: 'button', 'aria-label': 'Voir la fiche de ' + c.name, onclick: function () { openDetail(c); } },
+      h('button', { class: 'open', type: 'button', 'aria-label': 'Voir la fiche de ' + c.dn, onclick: function () { openDetail(c); } },
         h('span', { class: 'aura' }, picture(c)),
-        h('span', { class: 'meta' }, h('span', { class: 'nm' }, c.name), h('span', { class: 'sub' }, c.race))
+        h('span', { class: 'meta' }, h('span', { class: 'nm' }, c.dn), h('span', { class: 'sub' }, c.raceFr))
       ),
       favBtn(c)
     );
+  }
+  function offlineNotice() {
+    return [h('strong', {}, 'Mode hors ligne'), 'Affichage de la dernière liste enregistrée sur ton téléphone.'];
   }
   function render() {
     var list = filtered();
@@ -335,12 +483,13 @@
       : list.length + ' sur ' + state.all.length + ' personnages';
     $grid.replaceChildren.apply($grid, list.map(card));
     if (!list.length && state.all.length) {
+      var onlyFav = state.aff === 'fav' && !state.q;
       $status.replaceChildren(
-        h('strong', {}, state.aff === 'fav' && !state.q ? 'Aucun favori pour l’instant' : 'Aucun résultat'),
-        state.aff === 'fav' && !state.q ? 'Touche le cœur d’un personnage pour l’ajouter ici.' : 'Efface la recherche ou choisis « Tous ».'
+        h('strong', {}, onlyFav ? 'Aucun favori pour l’instant' : 'Aucun résultat'),
+        onlyFav ? 'Touche le cœur d’un personnage pour l’ajouter ici.' : 'Efface la recherche ou choisis « Tous ».'
       );
     } else if (state.fromCache) {
-      $status.replaceChildren(h('strong', {}, 'Mode hors ligne'), 'Affichage de la dernière liste enregistrée sur ton téléphone.');
+      $status.replaceChildren.apply($status, offlineNotice());
     } else {
       $status.replaceChildren();
     }
@@ -350,7 +499,15 @@
     state.favs[k] = !state.favs[k];
     saveFavs();
     render();
-    if ($dlg.open && state.current && state.current.id === c.id) fillDetail(c);
+    updateDetailFav(c);
+  }
+  function updateDetailFav(c) {
+    if (!$dlg.open || !state.current || state.current.id !== c.id) return;
+    var b = $dlg.querySelector('.fbtn');
+    if (!b) return;
+    var on = !!state.favs[String(c.id)];
+    b.setAttribute('aria-pressed', String(on));
+    b.textContent = on ? 'Dans mes favoris' : 'Ajouter aux favoris';
   }
 
   /* ---------- Fiche détaillée ---------- */
@@ -359,21 +516,25 @@
   }
   function fillDetail(c) {
     var faved = !!state.favs[String(c.id)];
-    var tags = [c.race, GENDER[c.gender] || c.gender, c.affiliation].filter(Boolean);
+    var tags = [c.raceFr, c.genderFr, c.affFr].filter(Boolean);
+    var desc = h('p', { class: 'desc' });
+    var note = h('p', { class: 'desc-note' });
     $dlg.replaceChildren(h('div', { class: 'sheet' },
       h('button', { class: 'close', type: 'button', 'aria-label': 'Fermer', onclick: closeDetail }, '×'),
       h('div', { class: 'aura hero' }, picture(c)),
       h('div', { class: 'body' },
-        h('h2', {}, c.name),
+        h('h2', {}, c.dn),
         h('div', { class: 'tags' }, tags.map(function (t) { return h('span', { class: 'tag' }, t); })),
-        h('dl', { class: 'stats' }, stat('Ki', c.ki), stat('Ki max', c.maxKi)),
-        c.description ? h('p', { class: 'desc' }, c.description) : null,
+        h('dl', { class: 'stats' }, stat('Ki', frNum(c.ki)), stat('Ki max', frNum(c.maxKi))),
+        desc,
+        note,
         h('button', {
           class: 'fbtn', type: 'button', 'aria-pressed': String(faved),
           onclick: function () { toggleFav(c); }
         }, faved ? 'Dans mes favoris' : 'Ajouter aux favoris')
       )
     ));
+    fillDescription(c, desc, note);
   }
   function openDetail(c) {
     state.current = c;
